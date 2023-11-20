@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
+#include <JSON.h>
 #include "RGBLED.h"
 
 #define WIFI_SSID "ESPServer"
@@ -19,6 +20,27 @@ RGBLED rgbLED(freq, redChannel, greenChannel, blueChannel, resolution, redPin, g
 
 AsyncWebServer server(80);
 
+bool isJSONValid(const char* jsonString) {
+  int curlyBraceCount = 0;
+  int squareBracketCount = 0;
+
+  for (int i = 0; jsonString[i] != '\0'; i++) {
+    char c = jsonString[i];
+
+    if (c == '{') {
+      curlyBraceCount++;
+    } else if (c == '}') {
+      curlyBraceCount--;
+    } else if (c == '[') {
+      squareBracketCount++;
+    } else if (c == ']') {
+      squareBracketCount--;
+    }
+  }
+
+  return curlyBraceCount == 0 && squareBracketCount == 0;
+}
+
 void onRequest(AsyncWebServerRequest *request) {
 }
 
@@ -27,11 +49,22 @@ void onFileUpload(AsyncWebServerRequest *request, const String& filename, size_t
 
 void onBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
   
+    Serial.println("New input:");
+    Serial.println((char*)data);
 
-    
-    // Serial.printf("body=%s\n", (char*) data);
-    
-    // request->send(200, "text/plain", "Ok");
+    if (!isJSONValid((char*)data)) {
+      Serial.println("Parsing input failed!");
+      request->send(400, "text/plain", "JSON Problem");
+      return;
+    }
+
+    JSONVar json = JSON.parse((char*)data);
+
+    String colorCodeRGB = json["RGBLED"];
+
+    rgbLED.applyColor(colorCodeRGB);
+
+    request->send(200, "text/plain", "Ok");
 }
 
 void setup() {
