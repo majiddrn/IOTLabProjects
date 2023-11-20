@@ -25,4 +25,5 @@ public:
     ~RGBLED(){};
 
     void applyColor(String);
+    String getColor();
 };

@@ -49,3 +49,7 @@ uint32_t RGBLED::hexToDecimal(String hexString) {
     }
   return decimalValue;
 }
+
+String RGBLED::getColor() {
+    return this->color;
+}

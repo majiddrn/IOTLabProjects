@@ -56,6 +56,8 @@ void onBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t in
     Serial.println("New input:");
     Serial.println((char*)data);
 
+    String msg = (char*)data;
+
     if (!isJSONValid((char*)data)) {
       Serial.println("Parsing input failed!");
       request->send(400, "text/plain", "JSON Problem");
@@ -64,26 +66,29 @@ void onBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t in
 
     JSONVar json = JSON.parse((char*)data);
 
-    String colorCodeRGB = json["RGBLED"];
-    String sevenColorLED = json["ColorLED"];
+    if (msg.indexOf("RGBLED") >= 0) {
+      String colorCodeRGB = json["RGBLED"];
+      colorCodeRGB.trim();
 
-    sevenColorLED.trim();
-    colorCodeRGB.trim();
-
-    if (sevenColorLED.indexOf("ON") >= 0) {
-      Serial.println("Output LED: ON");
-      digitalWrite(SEVEN_COLOR_LED, HIGH);
-    } else {
-      Serial.println("Output LED: OFF");
-      digitalWrite(SEVEN_COLOR_LED, LOW);
+      rgbLED.applyColor(colorCodeRGB);
     }
-    rgbLED.applyColor(colorCodeRGB);
+    
+    if (msg.indexOf("ColorLED") >= 0) {
+      String sevenColorLED = json["ColorLED"];
+      sevenColorLED.trim();
+
+      if (sevenColorLED.indexOf("ON") >= 0) {
+        Serial.println("Output LED: Toggle");
+        colorLEDOn = !colorLEDOn;
+        digitalWrite(SEVEN_COLOR_LED, (uint8_t)colorLEDOn);
+      }
+    }
 
     request->send(200, "text/plain", "Ok");
 }
 
 void setup() {
- Serial.begin(9600);
+  Serial.begin(9600);
 
   pinMode(SEVEN_COLOR_LED, OUTPUT);
   digitalWrite(SEVEN_COLOR_LED, 0);
@@ -95,10 +100,17 @@ void setup() {
 
   server.on("/", HTTP_POST, onRequest, onFileUpload, onBody);
 
+  server.on("/", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    Serial.println("GET Part");
+    request->send(200, "text/plain", "RGBLED Color: " + rgbLED.getColor() + ", 7 Color LED: " + (colorLEDOn ? "On" : "Off"));
+  });
+
   server.begin();
+
+  rgbLED.applyColor("000000");
 
 }
 
 void loop() {
-  
+
 }
