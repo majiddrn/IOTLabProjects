@@ -43,9 +43,9 @@ void loop() {
     case Standby:
       StandbyState();
       break;
-    // case Authentication:
-    //   AuthenticationState();
-    //   break;
+    case Authentication:
+      AuthenticationState();
+      break;
     // case Reset:
     //   Reset();
     //   break;
@@ -99,6 +99,69 @@ void StandbyState(){
 }
 
 void AuthenticationState(){
+  
+    if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {
+    MFRC522::StatusCode status;
+    byte buffer[18];
+    byte size = sizeof(buffer);
+
+    // Prepare the key (used both as key A and as key B)
+    // using FFFFFFFFFFFFh which is the default at chip delivery from the factory
+    MFRC522::MIFARE_Key key;
+    for (byte i = 0; i < 6; i++) key.keyByte[i] = 0xFF;
+
+    // Authenticate using key A
+    status = (MFRC522::StatusCode) mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, 2, &key, &(mfrc522.uid));
+    if (status != MFRC522::STATUS_OK) {
+      Serial.print(F("Authentication failed: "));
+      Serial.println(mfrc522.GetStatusCodeName(status));
+      return;
+    }
+
+    // Read block 2
+    status = (MFRC522::StatusCode)mfrc522.MIFARE_Read(2, buffer, &size);
+    if (status != MFRC522::STATUS_OK) {
+      Serial.print(F("Reading failed: "));
+      Serial.println(mfrc522.GetStatusCodeName(status));
+      return;
+    }
+
+    // Extract student number from first 5 bytes of buffer
+    String readID = "";
+    for (byte i = 0; i < 5; i++) {
+      readID += String(buffer[i]);
+    }
+
+    // Check if readID is in the predefined list
+    bool idFound = false;
+    for (int i = 0; i < sizeof(studentIDs) / sizeof(String); i++) {
+      if (readID.equals(studentIDs[i])) {
+        idFound = true;
+        break;
+      }
+    }
+
+    if (idFound) {
+      Serial.println(F("Access Granted."));
+    } else {
+      Serial.println(F("Access Denied."));
+    }
+
+    // Halt PICC
+    mfrc522.PICC_HaltA();
+    // Stop encryption on PCD
+    mfrc522.PCD_StopCrypto1();
+  } 
+
+  // Check if it's time to exit Authentication state
+    if (Serial.available() > 0) {
+        String command = Serial.readStringUntil('\n');
+        if (command.equals("mfr -r")) {
+            currentState = Standby;
+            Serial.println("Switched to Standby state.");
+        }
+    }
+
 }
 
 void RestState(){
