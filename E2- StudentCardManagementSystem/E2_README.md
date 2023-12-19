@@ -32,7 +32,8 @@ The project requires the following Arduino libraries:
  - `mfr -r:` leads us to Standby state.
  - `mfr -R:` leads us to Reset state. 
  - `mfr -auth:` leads us to Authentication state. 
- - `mfr -reg [id]:` leads us to Registration state with a given studentID. 
+ - `mfr -reg [id]:` leads us to Registration state with a given studentID.
+ - `mfr -setlist [id,id,...]` gives us premition to define valid IDs while running the code. 
 
   ### 2. **Reset** <br>
 
@@ -54,3 +55,12 @@ The project requires the following Arduino libraries:
   Then the ID will be checked by a predefined list (hard coded) and it will show the proper message.
 
   In this state we don't have any time limitation. <br> To exit this state use the `mfr -r` command.
+
+  ### 5. **setPredefinedIDs** <br>
+
+  > The `setPredefinedIDs` function is designed to handle the `mfr -setlist` command and update the predefined ID list in the system. 
+
+  When the `mfr -setlist` command is received, this function is invoked with a list of IDs as a string. Each ID in the list is separated by a   `comma`.    The function splits the ID list by comma and checks each ID to ensure it's a `5-digit number`.
+
+  If all IDs in the list are valid, the function updates the predefined ID list.
+
